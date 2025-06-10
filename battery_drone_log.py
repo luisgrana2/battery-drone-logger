@@ -165,8 +165,8 @@ with tabs[1]:
             st.success("✅ Drone flight logged successfully.")
 
 
+    st.subheader("📊 Drone Flight Statistics")
     if not drone_df.empty:
-        st.subheader("📊 Drone Flight Statistics")
 
         # Convert start/end time and calculate duration in minutes
         drone_df['start_dt'] = pd.to_datetime(drone_df['start_time'])
@@ -221,21 +221,21 @@ with tabs[1]:
         )
         st.plotly_chart(fig_locs, use_container_width=True)
     
-    # --- Delete Drone Records ---
+# --- Delete Drone Records ---
+    st.subheader("🗑️ Delete Drone Records")
     if not drone_df.empty:
-        st.subheader("🗑️ Delete Drone Records")
-        drone_ids = drone_df['drone_id'].unique().tolist()
+        drone_ids = df['drone_id'].unique().tolist()
         with st.form("delete_drone_form"):
-            selected_id = st.selectbox("Select Drone ID to Delete", drone_ids)
-            confirm = st.checkbox("I confirm I want to delete this drone's records permanently.")
-            delete_submit = st.form_submit_button("Delete Drone Records")
+            selected_drone_id = st.selectbox("Select Drone ID to Delete", drone_ids)
+            confirm_drone = st.checkbox("I confirm I want to delete this drone's records permanently.")
+            delete_drone_submit = st.form_submit_button("Delete Drone Records")
 
-        if delete_submit:
-            if confirm:
+        if delete_drone_submit:
+            if confirm_drone:
                 original_count = len(drone_df)
-                drone_df = drone_df[drone_df['drone_id'] != selected_id]
+                drone_df = drone_df[drone_df['drone_id'] != selected_drone_id]
                 save_drone_data(drone_df)
-                st.success(f"✅ Deleted all records for drone ID `{selected_id}` ({original_count - len(drone_df)} removed).")
+                st.success(f"✅ Deleted all records for battery ID `{selected_drone_id}` ({original_count - len(drone_df)} removed).")
                 st.rerun()
             else:
                 st.warning("☝️ You must confirm the deletion.")
