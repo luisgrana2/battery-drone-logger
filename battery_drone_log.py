@@ -40,12 +40,6 @@ with tabs[0]:
         except dropbox.exceptions.ApiError:
             return pd.DataFrame(columns=["timestamp", "battery_id", "start_time", "duration_minutes"])
         
-    def load_drone_data():
-        try:
-            _, res = dbx.files_download(DRONE_XLSX_PATH)
-            return pd.read_excel(BytesIO(res.content))
-        except dropbox.exceptions.ApiError:
-            return pd.DataFrame(columns=["timestamp", "battery_id", "drone_id", "start_time", "end_time", "num_locations"])
 
     def save_battery_data(df):
         with BytesIO() as f:
@@ -53,18 +47,13 @@ with tabs[0]:
             f.seek(0)
             dbx.files_upload(f.read(), BATTERY_XLSX_PATH, mode=dropbox.files.WriteMode.overwrite)
 
-    def save_drone_data(df):
-        with BytesIO() as f:
-            df.to_excel(f, index=False)
-            f.seek(0)
-            dbx.files_upload(f.read(), DRONE_XLSX_PATH, mode=dropbox.files.WriteMode.overwrite)
 
     if submit:
         if battery_id.strip() == "":
             st.warning("Battery ID cannot be empty.")
         else:
             today = datetime.now().date()
-            start_datetime = datetime.combine(today, start_time_str)
+            start_datetime = datetime.combine(today, datetime.strptime(start_time_str, "%H:%M").time())
             new_record = {
                 "timestamp": datetime.now().isoformat(),
                 "battery_id": battery_id,
@@ -117,6 +106,20 @@ with tabs[0]:
 
 # --- Drone Logger Tab ---
 with tabs[1]:
+
+    def load_drone_data():
+        try:
+            _, res = dbx.files_download(DRONE_XLSX_PATH)
+            return pd.read_excel(BytesIO(res.content))
+        except dropbox.exceptions.ApiError:
+            return pd.DataFrame(columns=["timestamp", "battery_id", "drone_id", "start_time", "end_time", "num_locations"])
+        
+    def save_drone_data(drone_df):
+        with BytesIO() as f:
+            drone_df.to_excel(f, index=False)
+            f.seek(0)
+            dbx.files_upload(f.read(), DRONE_XLSX_PATH, mode=dropbox.files.WriteMode.overwrite)
+
     st.header("🛩️ Drone Flight Logger")
 
     # Form to register drone flight
@@ -221,10 +224,10 @@ with tabs[1]:
         )
         st.plotly_chart(fig_locs, use_container_width=True)
     
-# --- Delete Drone Records ---
+    # --- Delete Drone Records ---
     st.subheader("🗑️ Delete Drone Records")
     if not drone_df.empty:
-        drone_ids = drone_df['drone_id'].unique().tolist()
+        drone_ids = drone_df['drone_id'].dropna().unique().tolist()
         with st.form("delete_drone_form"):
             selected_drone_id = st.selectbox("Select Drone ID to Delete", drone_ids)
             confirm_drone = st.checkbox("I confirm I want to delete this drone's records permanently.")
@@ -234,8 +237,11 @@ with tabs[1]:
             if confirm_drone:
                 original_count = len(drone_df)
                 drone_df = drone_df[drone_df['drone_id'] != selected_drone_id]
-                save_drone_data(drone_df)
-                st.success(f"✅ Deleted all records for battery ID `{selected_drone_id}` ({original_count - len(drone_df)} removed).")
-                st.rerun()
+                try:
+                    save_drone_data(drone_df)
+                    st.success(f"✅ Deleted all records for drone ID `{selected_drone_id}` ({original_count - len(drone_df)} removed).")
+                    # st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to save updated data: {e}")
             else:
                 st.warning("☝️ You must confirm the deletion.")
