@@ -28,7 +28,7 @@ with tabs[0]:
     # --- Form to Register Charge ---
     with st.form("carga_form"):
         battery_id = st.text_input("Battery ID", max_chars=20)
-        start_time = st.time_input("Start Time")
+        start_time_str = st.text_input("Start Time (HH:MM)", placeholder="e.g. 14:30")
         duration = st.number_input("Duration (in minutes)", min_value=1)
         submit = st.form_submit_button("Save Charge")
 
