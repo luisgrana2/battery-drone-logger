@@ -64,7 +64,7 @@ with tabs[0]:
             st.warning("Battery ID cannot be empty.")
         else:
             today = datetime.now().date()
-            start_datetime = datetime.combine(today, start_time)
+            start_datetime = datetime.combine(today, start_time_str)
             new_record = {
                 "timestamp": datetime.now().isoformat(),
                 "battery_id": battery_id,
