@@ -126,6 +126,12 @@ with tabs[1]:
     with st.form("drone_flight_form"):
         battery_id = st.text_input("Battery ID Used", max_chars=20)
         drone_id = st.text_input("Drone ID", max_chars=20)
+
+        # Remove leading zeros and convert to an integer
+        if drone_id: # Ensure the string is not empty
+            drone_id = drone_id.lstrip('0')
+
+
         start_time_str = st.text_input("Start Time (HH:MM)", placeholder="e.g. 14:30")
         end_time_str = st.text_input("End Time (HH:MM)", placeholder="e.g. 15:45")
         num_locations = st.number_input("Number of Locations Visited", min_value=1, step=1)
@@ -180,49 +186,36 @@ with tabs[1]:
         drone_df['duration_min'] = drone_df['duration_min'].fillna(0).round().astype(int)
         drone_df['num_locations'] = drone_df['num_locations'].fillna(0).astype(int)
 
+        def clean_drone_id(drone_id):
+            drone_id = str(drone_id).strip()  # quitar espacios
+            if drone_id.isdigit():
+                return str(int(drone_id))  # quitar ceros a la izquierda
+            return drone_id
 
-        # --- 1. Total flight time per drone ---
-        minutes_per_drone = drone_df.groupby('drone_id')['duration_min'].sum().reset_index()
+        drone_df['drone_id'] = drone_df['drone_id'].apply(clean_drone_id)
+        flight_time_per_drone = drone_df.groupby("drone_id")["duration_min"].sum().reset_index()
+        st.markdown("#### ⏱️ Total Flight Time per Drone (in Minutes)")
+        fig = px.bar(
+            flight_time_per_drone,
+            x="drone_id",
+            y="duration_min",
+            color="drone_id",  # Different color per drone
+            labels={"drone_id": "Drone ID", "duration_min": "Flight Time (min)"}
+        )
+        fig.update_layout(showlegend=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-        fig_minutes = px.bar(
-            minutes_per_drone,
-            x='duration_min',
-            y='drone_id',
-            orientation='h',
-            color='drone_id',
-            color_discrete_sequence=px.colors.qualitative.Set2,
-            labels={'duration_min': 'Flight Time (min)', 'drone_id': 'Drone ID'},
-            title="⏱️ Total Flight Time per Drone"
+        total_locations_per_drone = drone_df.groupby("drone_id")["num_locations"].sum().reset_index()
+        st.markdown("#### 📍 Total Locations per Drone")
+        fig = px.bar(
+            total_locations_per_drone,
+            x="drone_id",
+            y="num_locations",
+            color="drone_id",  # Different color per drone
+            labels={"drone_id": "Drone ID", "num_locations": "Total Locations"}
         )
-        fig_minutes.update_layout(
-            yaxis_title="Drone ID",
-            xaxis_title="Minutes",
-            yaxis=dict(tickformat="d"),
-            xaxis=dict(tickformat="d"),
-            height=400,
-        )
-        st.plotly_chart(fig_minutes, use_container_width=True)
-
-        # --- 2. Total locations visited per drone ---
-        locs_per_drone = drone_df.groupby('drone_id')['num_locations'].sum().reset_index()
-
-        fig_locs = px.bar(
-            locs_per_drone,
-            x='drone_id',
-            y='num_locations',
-            color='drone_id',
-            color_discrete_sequence=px.colors.qualitative.Set2,
-            labels={'num_locations': 'Locations Visited', 'drone_id': 'Drone ID'},
-            title="📍 Total Locations Visited per Drone"
-        )
-        fig_locs.update_layout(
-            xaxis_title="Drone ID",
-            yaxis_title="Locations",
-            yaxis=dict(tickformat="d"), 
-            xaxis=dict(tickformat="d"),
-            height=400,
-        )
-        st.plotly_chart(fig_locs, use_container_width=True)
+        fig.update_layout(showlegend=True)
+        st.plotly_chart(fig, use_container_width=True)
     
     # --- Delete Drone Records ---
     st.subheader("🗑️ Delete Drone Records")
@@ -240,7 +233,7 @@ with tabs[1]:
                 try:
                     save_drone_data(drone_df)
                     st.success(f"✅ Deleted all records for drone ID `{selected_drone_id}` ({original_count - len(drone_df)} removed).")
-                    # st.rerun()
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Failed to save updated data: {e}")
             else:
