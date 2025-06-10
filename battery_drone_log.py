@@ -206,7 +206,7 @@ with tabs[1]:
         st.plotly_chart(fig, use_container_width=True)
 
         total_locations_per_drone = drone_df.groupby("drone_id")["num_locations"].sum().reset_index()
-        st.markdown("#### 📍 Total Locations per Drone")
+        st.markdown("#### 📍 Total Locations Visited per Drone")
         fig = px.bar(
             total_locations_per_drone,
             x="drone_id",
