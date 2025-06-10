@@ -224,7 +224,7 @@ with tabs[1]:
 # --- Delete Drone Records ---
     st.subheader("🗑️ Delete Drone Records")
     if not drone_df.empty:
-        drone_ids = df['drone_id'].unique().tolist()
+        drone_ids = drone_df['drone_id'].unique().tolist()
         with st.form("delete_drone_form"):
             selected_drone_id = st.selectbox("Select Drone ID to Delete", drone_ids)
             confirm_drone = st.checkbox("I confirm I want to delete this drone's records permanently.")
